@@ -5,6 +5,10 @@ import Archive from '../views/Archive.vue'
 import Categories from '../views/Categories.vue'
 import Tags from '../views/Tags.vue'
 import About from '../views/About.vue'
+import Search from '../views/Search.vue'
+import Login from '../views/Login.vue'
+import Register from '../views/Register.vue'
+import Favorites from '../views/Favorites.vue'
 
 const routes = [
   {
@@ -36,6 +40,26 @@ const routes = [
     path: '/about',
     name: 'About',
     component: About
+  },
+  {
+    path: '/search',
+    name: 'Search',
+    component: Search
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register
+  },
+  {
+    path: '/favorites',
+    name: 'Favorites',
+    component: Favorites
   }
 ]
 
