@@ -78,6 +78,27 @@
             </button>
           </div>
         </div>
+
+        <!-- 分页 -->
+        <div v-if="totalPages > 1" class="flex justify-center gap-2 mt-8 flex-wrap">
+          <button
+            @click="goToPage(currentPage - 1)"
+            :disabled="currentPage === 1"
+            class="px-4 py-2 rounded-lg font-semibold transition bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            上一页
+          </button>
+          <span class="px-4 py-2 text-gray-600 dark:text-gray-400">
+            {{ currentPage }} / {{ totalPages }}
+          </span>
+          <button
+            @click="goToPage(currentPage + 1)"
+            :disabled="currentPage === totalPages"
+            class="px-4 py-2 rounded-lg font-semibold transition bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            下一页
+          </button>
+        </div>
       </div>
 
       <!-- 空状态 -->
@@ -104,6 +125,9 @@ const { isAuthenticated } = useAuth()
 
 const articles = ref([])
 const loading = ref(false)
+const currentPage = ref(1)
+const totalPages = ref(1)
+const pageSize = 10
 
 const formatDate = (date) => {
   if (!date) return ''
@@ -113,15 +137,23 @@ const formatDate = (date) => {
 const fetchMyArticles = async () => {
   loading.value = true
   try {
-    const response = await api.get('/user/articles')
-    // 后端返回 { data: [], total: ... } 格式
-    articles.value = response.data.data || response.data || []
+    const response = await api.get('/user/articles', {
+      params: { page: currentPage.value, pageSize }
+    })
+    articles.value = response.data.data || []
+    totalPages.value = Math.ceil((response.data.total || 0) / pageSize)
   } catch (err) {
     console.error('Failed to fetch articles:', err)
     articles.value = []
   } finally {
     loading.value = false
   }
+}
+
+const goToPage = (page) => {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+  fetchMyArticles()
 }
 
 const publishArticle = async (id) => {
