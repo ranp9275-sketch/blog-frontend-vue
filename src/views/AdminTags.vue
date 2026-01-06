@@ -33,7 +33,7 @@
     </div>
 
     <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
-      <h2 class="text-xl font-bold dark:text-white">标签列表</h2>
+      <h2 class="text-xl font-bold dark:text-white">标签列表 ({{ tags.length }})</h2>
       <button
         @click="openModal()"
         class="bg-primary hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition"
@@ -48,27 +48,39 @@
     </div>
 
     <!-- 标签列表 -->
-    <div v-else-if="tags.length > 0" class="flex flex-wrap gap-4">
-      <div
-        v-for="tag in tags"
-        :key="tag.id"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-md px-4 py-3 flex items-center gap-3"
-      >
-        <span class="text-primary font-semibold">#{{ tag.name }}</span>
-        <span class="text-gray-400 text-sm">{{ tag.slug }}</span>
-        <button
-          @click="openModal(tag)"
-          class="text-gray-500 hover:text-primary text-sm"
-        >
-          编辑
-        </button>
-        <button
-          @click="deleteTag(tag.id)"
-          class="text-red-500 hover:text-red-600 text-sm"
-        >
-          删除
-        </button>
-      </div>
+    <div v-else-if="tags.length > 0" class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-gray-50 dark:bg-gray-700">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase">名称</th>
+            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase">Slug</th>
+            <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase">操作</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          <tr v-for="tag in tags" :key="tag.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+            <td class="px-6 py-4">
+              <span class="text-primary font-semibold">#{{ tag.name }}</span>
+            </td>
+            <td class="px-6 py-4 text-gray-500 dark:text-gray-400">{{ tag.slug || '-' }}</td>
+            <td class="px-6 py-4 text-right">
+              <button
+                @click="openModal(tag)"
+                class="text-primary hover:text-green-600 px-3 py-1 transition"
+              >
+                编辑
+              </button>
+              <button
+                @click="confirmDelete(tag)"
+                :disabled="deleting === tag.id"
+                class="text-red-500 hover:text-red-600 px-3 py-1 transition disabled:opacity-50"
+              >
+                {{ deleting === tag.id ? '删除中...' : '删除' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- 空状态 -->
@@ -76,8 +88,8 @@
       <p class="text-gray-600 dark:text-gray-400 text-lg">暂无标签</p>
     </div>
 
-    <!-- 模态框 -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <!-- 编辑/新建模态框 -->
+    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeModal">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
         <h2 class="text-xl font-bold mb-4 dark:text-white">
           {{ editingTag ? '编辑标签' : '新建标签' }}
@@ -122,6 +134,35 @@
         </form>
       </div>
     </div>
+
+    <!-- 删除确认模态框 -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="cancelDelete">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6">
+        <div class="text-center">
+          <div class="text-5xl mb-4">⚠️</div>
+          <h3 class="text-lg font-bold mb-2 dark:text-white">确认删除</h3>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">
+            确定要删除标签 <span class="text-primary font-semibold">#{{ tagToDelete?.name }}</span> 吗？<br>
+            <span class="text-sm text-red-500">此操作不可恢复</span>
+          </p>
+          <div class="flex gap-3 justify-center">
+            <button
+              @click="cancelDelete"
+              class="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+            >
+              取消
+            </button>
+            <button
+              @click="deleteTag"
+              :disabled="deleting"
+              class="px-6 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-lg font-semibold transition"
+            >
+              {{ deleting ? '删除中...' : '确认删除' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -140,6 +181,9 @@ const showModal = ref(false)
 const editingTag = ref(null)
 const saving = ref(false)
 const error = ref('')
+const deleting = ref(null)
+const showDeleteModal = ref(false)
+const tagToDelete = ref(null)
 
 const form = ref({
   name: '',
@@ -199,13 +243,28 @@ const saveTag = async () => {
   }
 }
 
-const deleteTag = async (id) => {
-  if (!confirm('确定要删除这个标签吗？')) return
+const confirmDelete = (tag) => {
+  tagToDelete.value = tag
+  showDeleteModal.value = true
+}
+
+const cancelDelete = () => {
+  showDeleteModal.value = false
+  tagToDelete.value = null
+}
+
+const deleteTag = async () => {
+  if (!tagToDelete.value) return
+  deleting.value = tagToDelete.value.id
   try {
-    await api.delete(`/admin/tags/${id}`)
+    await api.delete(`/admin/tags/${tagToDelete.value.id}`)
+    showDeleteModal.value = false
+    tagToDelete.value = null
     await fetchTags()
   } catch (err) {
-    alert('删除失败')
+    alert(err.response?.data?.error || '删除失败')
+  } finally {
+    deleting.value = null
   }
 }
 
@@ -215,7 +274,6 @@ onMounted(async () => {
     return
   }
   
-  // 等待获取用户信息
   const { getCurrentUser } = useAuth()
   await getCurrentUser()
   
