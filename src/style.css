@@ -18,11 +18,7 @@ html {
   scroll-behavior: smooth;
 }
 
-html.dark {
-  color-scheme: dark;
-}
-
-html.dark body {
+.dark body {
   background-color: #111827;
   color: #f3f4f6;
 }
@@ -37,7 +33,7 @@ html.dark body {
   background: #f1f5f9;
 }
 
-html.dark ::-webkit-scrollbar-track {
+.dark ::-webkit-scrollbar-track {
   background: #1f2937;
 }
 
@@ -59,8 +55,8 @@ code {
   color: #dc2626;
 }
 
-html.dark code {
-  background-color: #1f2937;
+.dark code {
+  background-color: #374151;
   color: #fca5a5;
 }
 
@@ -79,24 +75,13 @@ pre code {
   color: inherit;
 }
 
-/* 链接样式 */
-a {
-  color: #10b981;
-  text-decoration: none;
-  transition: color 0.3s;
-}
-
-a:hover {
-  color: #059669;
-}
-
 /* 按钮样式 */
 button {
   transition: all 0.2s ease-in-out;
 }
 
 button:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 button:active {
@@ -112,20 +97,6 @@ textarea {
 input:focus,
 textarea:focus {
   outline: none;
-  ring: 2px;
-  ring-color: #10b981;
-}
-
-html.dark input,
-html.dark textarea {
-  background-color: #1f2937;
-  border-color: #374151;
-  color: #f3f4f6;
-}
-
-html.dark input::placeholder,
-html.dark textarea::placeholder {
-  color: #9ca3af;
 }
 
 /* 卡片样式 */
@@ -136,7 +107,7 @@ html.dark textarea::placeholder {
   transition: box-shadow 0.3s;
 }
 
-html.dark .card {
+.dark .card {
   background-color: #1f2937;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
@@ -145,7 +116,7 @@ html.dark .card {
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
-html.dark .card:hover {
+.dark .card:hover {
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
 }
 
@@ -208,8 +179,8 @@ table td {
   text-align: left;
 }
 
-html.dark table th,
-html.dark table td {
+.dark table th,
+.dark table td {
   border-color: #374151;
 }
 
@@ -218,7 +189,7 @@ table th {
   font-weight: bold;
 }
 
-html.dark table th {
+.dark table th {
   background-color: #1f2937;
 }
 
@@ -242,7 +213,7 @@ blockquote {
   margin-bottom: 16px;
 }
 
-html.dark blockquote {
+.dark blockquote {
   color: #9ca3af;
 }
 

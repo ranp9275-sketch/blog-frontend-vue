@@ -1,9 +1,16 @@
 import { ref, computed } from 'vue'
 import api from '../api/index'
 
+// 单例状态 - 在模块级别定义，确保所有组件共享同一状态
+const user = ref(null)
+const token = ref(localStorage.getItem('token') || '')
+
+// 初始化 token
+if (token.value) {
+  api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+}
+
 export const useAuth = () => {
-  const user = ref(null)
-  const token = ref(localStorage.getItem('token') || '')
   const isAuthenticated = computed(() => !!token.value)
 
   // 登陆
@@ -13,7 +20,6 @@ export const useAuth = () => {
       token.value = response.data.token
       user.value = response.data.user
       localStorage.setItem('token', token.value)
-      // 设置 Authorization 头
       api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
       return true
     } catch (error) {
@@ -57,11 +63,6 @@ export const useAuth = () => {
       logout()
       return null
     }
-  }
-
-  // 初始化 token
-  if (token.value) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
   }
 
   return {

@@ -1,9 +1,10 @@
 import { ref, computed } from 'vue'
 import api from '../api/index'
 
-export const useFavorites = () => {
-  const favorites = ref([])
+// 单例状态
+const favorites = ref([])
 
+export const useFavorites = () => {
   // 获取收藏列表
   const getFavorites = async () => {
     try {
@@ -12,6 +13,7 @@ export const useFavorites = () => {
       return favorites.value
     } catch (error) {
       console.error('Failed to get favorites:', error)
+      favorites.value = []
       return []
     }
   }
@@ -20,9 +22,8 @@ export const useFavorites = () => {
   const addFavorite = async (articleId) => {
     try {
       await api.post('/user/favorites', { article_id: articleId })
-      if (!favorites.value.find(f => f.id === articleId)) {
-        favorites.value.push({ id: articleId })
-      }
+      // 重新获取收藏列表以确保数据同步
+      await getFavorites()
       return true
     } catch (error) {
       console.error('Failed to add favorite:', error)
@@ -43,15 +44,21 @@ export const useFavorites = () => {
   }
 
   // 检查是否已收藏
-  const isFavorited = computed(() => (articleId) => {
+  const isFavorited = (articleId) => {
     return favorites.value.some(f => f.id === articleId)
-  })
+  }
+
+  // 清空收藏（登出时使用）
+  const clearFavorites = () => {
+    favorites.value = []
+  }
 
   return {
     favorites,
     getFavorites,
     addFavorite,
     removeFavorite,
-    isFavorited
+    isFavorited,
+    clearFavorites
   }
 }

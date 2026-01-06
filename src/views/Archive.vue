@@ -1,16 +1,21 @@
 <template>
   <div>
-    <h1 class="text-4xl font-bold mb-8">归档</h1>
+    <h1 class="text-4xl font-bold mb-8 dark:text-white">归档</h1>
+
+    <!-- 加载状态 -->
+    <div v-if="loading" class="flex justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
 
     <!-- 按年份分组 -->
-    <div v-if="groupedArticles.length > 0" class="space-y-12">
+    <div v-else-if="groupedArticles.length > 0" class="space-y-12">
       <div v-for="yearGroup in groupedArticles" :key="yearGroup.year">
         <h2 class="text-2xl font-bold mb-6 text-primary">{{ yearGroup.year }} 年</h2>
 
         <!-- 按月份分组 -->
         <div class="space-y-8 ml-4">
           <div v-for="monthGroup in yearGroup.months" :key="monthGroup.month">
-            <h3 class="text-lg font-semibold mb-4 text-gray-700">
+            <h3 class="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-300">
               {{ formatMonth(monthGroup.month) }}
             </h3>
 
@@ -22,9 +27,9 @@
                 @click="goToArticle(article.id)"
                 class="cursor-pointer hover:text-primary transition group"
               >
-                <div class="flex items-center gap-4">
-                  <span class="text-sm text-gray-500 font-mono">{{ formatDate(article.published_at) }}</span>
-                  <h4 class="text-gray-800 group-hover:text-primary transition font-semibold">
+                <div class="flex items-center gap-4 flex-wrap">
+                  <span class="text-sm text-gray-500 dark:text-gray-400 font-mono">{{ formatDate(article.published_at) }}</span>
+                  <h4 class="text-gray-800 dark:text-gray-200 group-hover:text-primary transition font-semibold">
                     {{ article.title }}
                   </h4>
                   <span v-if="article.category" class="text-xs bg-primary text-white px-2 py-1 rounded">
@@ -39,13 +44,8 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="bg-gray-100 rounded-lg p-12 text-center">
-      <p class="text-gray-600 text-lg">暂无文章</p>
-    </div>
-
-    <!-- 加载状态 -->
-    <div v-if="loading" class="flex justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    <div v-else class="bg-gray-100 dark:bg-gray-800 rounded-lg p-12 text-center">
+      <p class="text-gray-600 dark:text-gray-400 text-lg">暂无文章</p>
     </div>
   </div>
 </template>
@@ -62,17 +62,21 @@ const articles = ref([])
 const loading = ref(true)
 
 const formatDate = (date) => {
-  return dayjs(date).format('YYYY-MM-DD')
+  if (!date) return ''
+  return dayjs(date).format('MM-DD')
 }
 
 const formatMonth = (month) => {
-  return dayjs(month).format('MMMM')
+  const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+  const m = parseInt(month.split('-')[1]) - 1
+  return monthNames[m] || month
 }
 
 const groupedArticles = computed(() => {
   const groups = {}
 
   articles.value.forEach(article => {
+    if (!article.published_at) return
     const date = dayjs(article.published_at)
     const year = date.year()
     const month = date.format('YYYY-MM')
@@ -113,9 +117,12 @@ const fetchArticles = async () => {
 
     while (hasMore) {
       const response = await articleAPI.getArticles(page, 100)
-      allArticles = [...allArticles, ...(response.data.data || [])]
+      const data = response.data.data || []
+      allArticles = [...allArticles, ...data]
       hasMore = response.data.total > allArticles.length
       page++
+      // 防止无限循环
+      if (page > 10) break
     }
 
     articles.value = allArticles.sort((a, b) =>
@@ -123,6 +130,7 @@ const fetchArticles = async () => {
     )
   } catch (error) {
     console.error('Failed to fetch articles:', error)
+    articles.value = []
   } finally {
     loading.value = false
   }

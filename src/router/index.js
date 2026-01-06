@@ -9,6 +9,13 @@ import Search from '../views/Search.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Favorites from '../views/Favorites.vue'
+import MyArticles from '../views/MyArticles.vue'
+import ArticleEditor from '../views/ArticleEditor.vue'
+import AdminArticles from '../views/AdminArticles.vue'
+import AdminCategories from '../views/AdminCategories.vue'
+import AdminTags from '../views/AdminTags.vue'
+import AdminUsers from '../views/AdminUsers.vue'
+import Profile from '../views/Profile.vue'
 
 const routes = [
   {
@@ -60,6 +67,46 @@ const routes = [
     path: '/favorites',
     name: 'Favorites',
     component: Favorites
+  },
+  {
+    path: '/my-articles',
+    name: 'MyArticles',
+    component: MyArticles
+  },
+  {
+    path: '/write',
+    name: 'ArticleEditor',
+    component: ArticleEditor
+  },
+  {
+    path: '/edit/:id',
+    name: 'EditArticle',
+    component: ArticleEditor
+  },
+  {
+    path: '/admin/articles',
+    name: 'AdminArticles',
+    component: AdminArticles
+  },
+  {
+    path: '/admin/categories',
+    name: 'AdminCategories',
+    component: AdminCategories
+  },
+  {
+    path: '/admin/tags',
+    name: 'AdminTags',
+    component: AdminTags
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: AdminUsers
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: Profile
   }
 ]
 
