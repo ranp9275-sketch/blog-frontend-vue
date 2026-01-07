@@ -35,7 +35,7 @@
         <ul class="space-y-2 text-gray-600 dark:text-gray-400">
           <li class="flex items-center gap-2">
             <span>📧</span>
-            邮箱: contact@example.com
+            邮箱: 4553664@qq.com
           </li>
           <li class="flex items-center gap-2">
             <span>🐙</span>
@@ -43,9 +43,30 @@
           </li>
         </ul>
       </section>
+
+      <!-- 打赏支持 -->
+      <section class="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
+        <h2 class="text-2xl font-bold mb-4 dark:text-white">支持作者</h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">
+          如果觉得内容对你有帮助，欢迎请作者喝杯咖啡 ☕
+        </p>
+        <button
+          @click="showDonation = true"
+          class="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white px-8 py-3 rounded-full font-semibold transition shadow-lg"
+        >
+          ☕ 打赏支持
+        </button>
+      </section>
     </div>
+
+    <!-- 打赏弹窗 -->
+    <DonationModal :show="showDonation" @close="showDonation = false" />
   </div>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import DonationModal from '../components/DonationModal.vue'
+
+const showDonation = ref(false)
 </script>

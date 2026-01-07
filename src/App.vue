@@ -83,10 +83,55 @@
     </main>
 
     <!-- 页脚 -->
-    <footer class="bg-darker text-gray-400 py-8 mt-12">
-      <div class="max-w-7xl mx-auto px-4 text-center">
-        <p>&copy; 2024 Tech Blog. All rights reserved.</p>
-        <p class="text-sm mt-2">Made with ❤️ by <a href="https://github.com/ranp9275-sketch" class="text-primary hover:underline">ranp9275-sketch</a></p>
+    <footer class="bg-darker text-gray-400 py-10 mt-12">
+      <div class="max-w-7xl mx-auto px-4">
+        <!-- 主要内容 -->
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-gray-700">
+          <!-- Logo 和版权 -->
+          <div class="text-center md:text-left">
+            <h3 class="text-xl font-bold text-primary mb-2">Tech Blog</h3>
+            <p class="text-sm">&copy; 2025 Tech Blog. All rights reserved.</p>
+          </div>
+          
+          <!-- 链接 -->
+          <div class="flex items-center gap-6 text-sm">
+            <router-link to="/about" class="hover:text-primary transition">关于</router-link>
+            <a href="https://github.com/ranp9275-sketch" target="_blank" class="hover:text-primary transition flex items-center gap-1">
+              <span>GitHub</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- 备案信息 -->
+        <div class="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-xs text-gray-500">
+          <a 
+            href="https://beian.miit.gov.cn/" 
+            target="_blank" 
+            rel="noopener" 
+            class="hover:text-gray-300 transition flex items-center gap-1.5"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/>
+            </svg>
+            <span>ICP备案号：蜀ICP备2025177100号-1</span>
+          </a>
+          <a 
+            href="http://www.beian.gov.cn/" 
+            target="_blank" 
+            rel="noopener" 
+            class="hover:text-gray-300 transition flex items-center gap-1.5"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2A11.954 11.954 0 0110 1.944zM10 14a4 4 0 100-8 4 4 0 000 8z" clip-rule="evenodd"/>
+            </svg>
+            <span>蜀公网安备 蜀ICP备2025177100号</span>
+          </a>
+        </div>
+
+        <!-- 底部说明 -->
+        <p class="text-center text-xs text-gray-600 mt-4">
+          Made with ❤️ using Vue 3 + Golang
+        </p>
       </div>
     </footer>
   </div>

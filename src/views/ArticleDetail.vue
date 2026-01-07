@@ -44,6 +44,20 @@
         </router-link>
       </div>
 
+      <!-- 打赏按钮 -->
+      <div class="flex justify-center mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
+        <button
+          @click="showDonation = true"
+          class="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white px-8 py-3 rounded-full font-semibold transition shadow-lg flex items-center gap-2"
+        >
+          <span class="text-xl">☕</span>
+          请作者喝杯咖啡
+        </button>
+      </div>
+
+      <!-- 打赏弹窗 -->
+      <DonationModal :show="showDonation" @close="showDonation = false" />
+
       <!-- 评论区 -->
       <div class="mt-12">
         <h2 class="text-2xl font-bold mb-6 dark:text-white">评论 ({{ comments.length }})</h2>
@@ -117,6 +131,7 @@ import { useRoute } from 'vue-router'
 import { articleAPI, commentAPI } from '../api/index'
 import { marked } from 'marked'
 import dayjs from 'dayjs'
+import DonationModal from '../components/DonationModal.vue'
 
 const route = useRoute()
 
@@ -124,6 +139,7 @@ const article = ref(null)
 const comments = ref([])
 const loading = ref(true)
 const submitting = ref(false)
+const showDonation = ref(false)
 const commentForm = ref({
   author: '',
   email: '',

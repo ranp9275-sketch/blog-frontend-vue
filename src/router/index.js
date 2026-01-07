@@ -15,6 +15,7 @@ import AdminArticles from '../views/AdminArticles.vue'
 import AdminCategories from '../views/AdminCategories.vue'
 import AdminTags from '../views/AdminTags.vue'
 import AdminUsers from '../views/AdminUsers.vue'
+import AdminDonation from '../views/AdminDonation.vue'
 import Profile from '../views/Profile.vue'
 
 const routes = [
@@ -102,6 +103,11 @@ const routes = [
     path: '/admin/users',
     name: 'AdminUsers',
     component: AdminUsers
+  },
+  {
+    path: '/admin/donation',
+    name: 'AdminDonation',
+    component: AdminDonation
   },
   {
     path: '/profile',
