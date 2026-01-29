@@ -10,11 +10,11 @@ const api = axios.create({
 // 文章相关 API
 export const articleAPI = {
   // 获取文章列表
-  getArticles: (page = 1, pageSize = 10) => 
+  getArticles: (page = 1, pageSize = 10) =>
     api.get('/articles', { params: { page, pageSize } }),
 
   // 获取文章详情
-  getArticleById: (id) => 
+  getArticleById: (id) =>
     api.get(`/articles/${id}`),
 
   // 按分类获取文章
@@ -98,7 +98,14 @@ export const adminArticleAPI = {
 
   // 删除文章
   deleteArticle: (id) =>
-    api.delete(`/admin/articles/${id}`)
+    api.delete(`/admin/articles/${id}`),
+
+  // 上传文章 (PDF/MD)
+  uploadArticle: (formData) =>
+    api.post('/admin/articles/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000 // 60秒超时，处理大文件
+    })
 }
 
 // 管理员用户管理 API

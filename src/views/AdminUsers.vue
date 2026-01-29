@@ -157,6 +157,18 @@
         </button>
       </div>
     </div>
+
+    <!-- 弹窗 -->
+    <Modal
+      :show="modal.show"
+      :type="modal.type"
+      :title="modal.title"
+      :message="modal.message"
+      :show-cancel="modal.showCancel"
+      :confirm-text="modal.confirmText"
+      @close="modal.show = false"
+      @confirm="handleModalConfirm"
+    />
   </div>
 </template>
 
@@ -165,6 +177,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import api from '../api/index'
 import dayjs from 'dayjs'
+import Modal from '../components/Modal.vue'
 
 const { isAuthenticated, user, getCurrentUser } = useAuth()
 
@@ -176,6 +189,36 @@ const loading = ref(false)
 const searchQuery = ref('')
 const currentPage = ref(1)
 const totalPages = ref(1)
+
+// 弹窗状态
+const modal = ref({
+  show: false,
+  type: 'info',
+  title: '',
+  message: '',
+  showCancel: false,
+  confirmText: '确定',
+  action: null
+})
+
+const showModal = (options) => {
+  modal.value = {
+    show: true,
+    type: options.type || 'info',
+    title: options.title || '',
+    message: options.message || '',
+    showCancel: options.showCancel || false,
+    confirmText: options.confirmText || '确定',
+    action: options.action || null
+  }
+}
+
+const handleModalConfirm = () => {
+  if (modal.value.action) {
+    modal.value.action()
+  }
+  modal.value.show = false
+}
 
 const formatDate = (date) => {
   if (!date) return ''
@@ -209,25 +252,60 @@ const goToPage = (page) => {
 
 const setRole = async (userId, role) => {
   const action = role === 'admin' ? '设为管理员' : '取消管理员权限'
-  if (!confirm(`确定要${action}吗？`)) return
-
-  try {
-    await api.put(`/admin/users/${userId}/role`, { role })
-    await fetchUsers()
-  } catch (err) {
-    alert('操作失败')
-  }
+  
+  showModal({
+    type: 'warning',
+    title: '确认操作',
+    message: `确定要${action}吗？`,
+    showCancel: true,
+    confirmText: '确认',
+    action: async () => {
+      try {
+        await api.put(`/admin/users/${userId}/role`, { role })
+        await fetchUsers()
+        showModal({
+          type: 'success',
+          title: '操作成功',
+          message: `已${action}。`
+        })
+      } catch (err) {
+        console.error('Failed to update role:', err)
+        showModal({
+          type: 'error',
+          title: '操作失败',
+          message: '无法更新用户角色，请稍后重试。'
+        })
+      }
+    }
+  })
 }
 
 const deleteUser = async (userId) => {
-  if (!confirm('确定要删除这个用户吗？此操作不可恢复！')) return
-
-  try {
-    await api.delete(`/admin/users/${userId}`)
-    await fetchUsers()
-  } catch (err) {
-    alert('删除失败')
-  }
+  showModal({
+    type: 'error',
+    title: '确认删除',
+    message: '确定要删除这个用户吗？此操作不可恢复！',
+    showCancel: true,
+    confirmText: '确认删除',
+    action: async () => {
+      try {
+        await api.delete(`/admin/users/${userId}`)
+        await fetchUsers()
+        showModal({
+          type: 'success',
+          title: '删除成功',
+          message: '用户已从系统中移除。'
+        })
+      } catch (err) {
+        console.error('Failed to delete user:', err)
+        showModal({
+          type: 'error',
+          title: '删除失败',
+          message: '无法删除该用户，请稍后重试。'
+        })
+      }
+    }
+  })
 }
 
 onMounted(async () => {
