@@ -2,12 +2,30 @@
   <div>
     <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
       <h1 class="text-3xl font-bold dark:text-white">我的文章</h1>
-      <router-link
-        to="/write"
-        class="bg-primary hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition"
-      >
-        + 创建文章
-      </router-link>
+      <div class="flex items-center gap-3">
+        <input
+          type="file"
+          ref="fileInput"
+          class="hidden"
+          accept=".md,.pdf"
+          @change="handleFileUpload"
+        />
+        <button
+          @click="fileInput.click()"
+          :disabled="uploading"
+          class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-semibold transition flex items-center gap-2"
+        >
+          <span v-if="uploading" class="animate-spin text-lg">⏳</span>
+          <span v-else>📥</span>
+          {{ uploading ? '导入中...' : '导入文章' }}
+        </button>
+        <router-link
+          to="/write"
+          class="bg-primary hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition"
+        >
+          + 创建文章
+        </router-link>
+      </div>
     </div>
 
     <!-- 未登录提示 -->
@@ -192,31 +210,17 @@
       </div>
     </div>
 
-    <!-- 删除确认弹窗 -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <h3 class="text-xl font-bold mb-4 dark:text-white">确认删除</h3>
-        <p class="text-gray-600 dark:text-gray-400 mb-2">
-          确定要删除文章 "<span class="font-semibold">{{ articleToDelete?.title }}</span>" 吗？
-        </p>
-        <p class="text-red-500 text-sm mb-6">此操作不可恢复！</p>
-        <div class="flex gap-3 justify-end">
-          <button
-            @click="showDeleteModal = false"
-            class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 transition"
-          >
-            取消
-          </button>
-          <button
-            @click="deleteArticle"
-            :disabled="deleting"
-            class="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold transition"
-          >
-            {{ deleting ? '删除中...' : '确认删除' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- 弹窗 -->
+    <Modal
+      :show="modal.show"
+      :type="modal.type"
+      :title="modal.title"
+      :message="modal.message"
+      :show-cancel="modal.showCancel"
+      :confirm-text="modal.confirmText"
+      @close="modal.show = false"
+      @confirm="handleModalConfirm"
+    />
   </div>
 </template>
 
@@ -226,6 +230,7 @@ import { useAuth } from '../composables/useAuth'
 import { categoryAPI, tagAPI } from '../api/index'
 import api from '../api/index'
 import dayjs from 'dayjs'
+import Modal from '../components/Modal.vue'
 
 const { isAuthenticated } = useAuth()
 
@@ -233,6 +238,8 @@ const articles = ref([])
 const categories = ref([])
 const tags = ref([])
 const loading = ref(false)
+const uploading = ref(false)
+const fileInput = ref(null)
 const currentPage = ref(1)
 const totalPages = ref(1)
 
@@ -242,10 +249,35 @@ const filterStatus = ref('')
 const filterCategory = ref('')
 const filterTag = ref('')
 
-// 删除相关
-const showDeleteModal = ref(false)
-const articleToDelete = ref(null)
-const deleting = ref(false)
+// 弹窗状态
+const modal = ref({
+  show: false,
+  type: 'info',
+  title: '',
+  message: '',
+  showCancel: false,
+  confirmText: '确定',
+  action: null
+})
+
+const showModal = (options) => {
+  modal.value = {
+    show: true,
+    type: options.type || 'info',
+    title: options.title || '',
+    message: options.message || '',
+    showCancel: options.showCancel || false,
+    confirmText: options.confirmText || '确定',
+    action: options.action || null
+  }
+}
+
+const handleModalConfirm = () => {
+  if (modal.value.action) {
+    modal.value.action()
+  }
+  modal.value.show = false
+}
 
 const hasFilters = computed(() => {
   return searchQuery.value || filterStatus.value || filterCategory.value || filterTag.value
@@ -294,6 +326,41 @@ const fetchMyArticles = async () => {
   }
 }
 
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  uploading.value = true
+  try {
+    await api.post('/user/articles/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    await fetchMyArticles()
+    showModal({
+      type: 'success',
+      title: '导入成功',
+      message: `文章《${file.name}》已成功导入！`
+    })
+  } catch (err) {
+    console.error('Failed to upload article:', err)
+    showModal({
+      type: 'error',
+      title: '导入失败',
+      message: err.response?.data?.error || '导入过程中出现错误。'
+    })
+  } finally {
+    uploading.value = false
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+  }
+}
+
 const fetchCategories = async () => {
   try {
     const response = await categoryAPI.getCategories()
@@ -327,35 +394,59 @@ const goToPage = (page) => {
 }
 
 const publishArticle = async (article) => {
-  if (!confirm(`确定要发布文章 "${article.title}" 吗？`)) return
-  try {
-    await api.put(`/user/articles/${article.id}`, { submit: true })
-    await fetchMyArticles()
-  } catch (err) {
-    console.error('Failed to publish article:', err)
-    alert('发布失败')
-  }
+  showModal({
+    type: 'warning',
+    title: '确认发布',
+    message: `确定要发布文章 "${article.title}" 吗？`,
+    showCancel: true,
+    confirmText: '确认发布',
+    action: async () => {
+      try {
+        await api.put(`/user/articles/${article.id}`, { submit: true })
+        await fetchMyArticles()
+        showModal({
+          type: 'success',
+          title: '发布成功',
+          message: '文章已成功发布！'
+        })
+      } catch (err) {
+        console.error('Failed to publish article:', err)
+        showModal({
+          type: 'error',
+          title: '发布失败',
+          message: '发布过程中出现错误。'
+        })
+      }
+    }
+  })
 }
 
 const confirmDelete = (article) => {
-  articleToDelete.value = article
-  showDeleteModal.value = true
-}
-
-const deleteArticle = async () => {
-  if (!articleToDelete.value) return
-  deleting.value = true
-  try {
-    await api.delete(`/user/articles/${articleToDelete.value.id}`)
-    showDeleteModal.value = false
-    articleToDelete.value = null
-    await fetchMyArticles()
-  } catch (err) {
-    console.error('Failed to delete article:', err)
-    alert('删除失败')
-  } finally {
-    deleting.value = false
-  }
+  showModal({
+    type: 'error',
+    title: '确认删除',
+    message: `你确定要删除文章 "${article.title}" 吗？此操作无法撤销。`,
+    showCancel: true,
+    confirmText: '确认删除',
+    action: async () => {
+      try {
+        await api.delete(`/user/articles/${article.id}`)
+        await fetchMyArticles()
+        showModal({
+          type: 'success',
+          title: '删除成功',
+          message: '文章已删除。'
+        })
+      } catch (err) {
+        console.error('Failed to delete article:', err)
+        showModal({
+          type: 'error',
+          title: '删除失败',
+          message: '删除过程中出现错误。'
+        })
+      }
+    }
+  })
 }
 
 onMounted(() => {

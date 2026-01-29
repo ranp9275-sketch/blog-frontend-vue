@@ -11,12 +11,12 @@
         <span v-if="article.category" class="bg-primary text-white px-4 py-2 rounded-full text-sm font-semibold">
           {{ article.category.name }}
         </span>
-        <span class="text-gray-500 dark:text-gray-400">{{ formatDate(article.published_at) }}</span>
+        <span class="text-gray-600 dark:text-gray-400">{{ formatDate(article.published_at) }}</span>
       </div>
 
       <h1 class="text-3xl md:text-4xl font-bold mb-4 dark:text-white">{{ article.title }}</h1>
 
-      <div class="flex items-center justify-between text-gray-600 dark:text-gray-400 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700 flex-wrap gap-4">
+      <div class="flex items-center justify-between text-gray-700 dark:text-gray-400 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700 flex-wrap gap-4">
         <div class="flex items-center gap-4 flex-wrap">
           <span v-if="article.author" class="font-semibold">作者: {{ article.author.name }}</span>
           <span>👁️ {{ article.views || 0 }} 次阅读</span>
@@ -30,7 +30,7 @@
       </div>
 
       <!-- 文章内容 -->
-      <div class="prose prose-lg max-w-none mb-8 dark:prose-invert" v-html="renderedContent"></div>
+      <div class="prose prose-lg prose-slate max-w-none mb-8 dark:prose-invert" v-html="renderedContent"></div>
 
       <!-- 标签 -->
       <div v-if="article.tags && article.tags.length" class="flex flex-wrap gap-2 mb-8 pb-8 border-b border-gray-200 dark:border-gray-700">
@@ -211,15 +211,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.prose {
-  color: #1f2937;
-}
-
-.dark .prose,
-.prose.dark\:prose-invert {
-  color: #e5e7eb;
-}
-
 .prose :deep(h2) {
   font-size: 1.5rem;
   font-weight: bold;
@@ -280,7 +271,7 @@ onMounted(() => {
   border-left: 4px solid #10b981;
   padding-left: 1rem;
   font-style: italic;
-  color: #6b7280;
+  color: #4b5563;
   margin-bottom: 1rem;
 }
 

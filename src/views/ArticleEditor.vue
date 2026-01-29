@@ -4,7 +4,7 @@
       {{ isEdit ? '编辑文章' : '创建文章' }}
     </h1>
 
-    <form @submit.prevent="handleSubmit" class="space-y-6">
+    <form @submit.prevent="handleSubmit(false)" class="space-y-6">
       <!-- 标题 -->
       <div>
         <label class="block text-sm font-semibold mb-2 dark:text-gray-300">标题 *</label>
@@ -70,13 +70,11 @@
       <!-- 内容 -->
       <div>
         <label class="block text-sm font-semibold mb-2 dark:text-gray-300">内容 * (支持 Markdown)</label>
-        <textarea
+        <MarkdownEditor
           v-model="form.content"
-          rows="15"
+          :rows="15"
           placeholder="使用 Markdown 编写文章内容..."
-          class="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-primary bg-white dark:bg-gray-800 dark:text-white font-mono"
-          required
-        ></textarea>
+        />
       </div>
 
       <!-- 标签 -->
@@ -115,16 +113,16 @@
           :disabled="loading"
           class="bg-primary hover:bg-green-600 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition"
         >
-          {{ loading ? '保存中...' : (isEdit ? '更新文章' : '创建文章') }}
+          {{ loading ? '保存中...' : (isEdit ? '保存草稿' : '创建草稿') }}
         </button>
         <button
-          v-if="!isEdit"
+          v-if="!isEdit || form.status === 'draft'"
           type="button"
-          @click="handleSubmit(true)"
+          @click="confirmPublish"
           :disabled="loading"
           class="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold transition"
         >
-          创建并发布
+          {{ isEdit ? '发布文章' : '创建并发布' }}
         </button>
         <router-link
           to="/my-articles"
@@ -142,6 +140,18 @@
         <div class="prose prose-lg max-w-none dark:prose-invert" v-html="renderedContent"></div>
       </div>
     </div>
+
+    <!-- 弹窗 -->
+    <Modal
+      :show="modal.show"
+      :type="modal.type"
+      :title="modal.title"
+      :message="modal.message"
+      :show-cancel="modal.showCancel"
+      :confirm-text="modal.confirmText"
+      @close="modal.show = false"
+      @confirm="handleModalConfirm"
+    />
   </div>
 </template>
 
@@ -152,6 +162,8 @@ import { useAuth } from '../composables/useAuth'
 import { categoryAPI, tagAPI } from '../api/index'
 import api from '../api/index'
 import { marked } from 'marked'
+import Modal from '../components/Modal.vue'
+import MarkdownEditor from '../components/MarkdownEditor.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -174,6 +186,37 @@ const tags = ref([])
 const selectedTags = ref([])
 const loading = ref(false)
 const error = ref('')
+
+// 弹窗状态
+const modal = ref({
+  show: false,
+  type: 'info',
+  title: '',
+  message: '',
+  showCancel: false,
+  confirmText: '确定',
+  action: null
+})
+
+const showModal = (options) => {
+  modal.value = {
+    show: true,
+    type: options.type || 'info',
+    title: options.title || '',
+    message: options.message || '',
+    showCancel: options.showCancel || false,
+    confirmText: options.confirmText || '确定',
+    action: options.action || null
+  }
+}
+
+const handleModalConfirm = () => {
+  if (modal.value.action) {
+    modal.value.action()
+  } else {
+    modal.value.show = false
+  }
+}
 
 const availableTags = computed(() => {
   const selectedIds = selectedTags.value.map(t => t.id)
@@ -237,6 +280,22 @@ const removeTag = (tagId) => {
   selectedTags.value = selectedTags.value.filter(t => t.id !== tagId)
 }
 
+const confirmPublish = () => {
+  if (!form.value.title || !form.value.content) {
+    error.value = '标题和内容不能为空'
+    return
+  }
+
+  showModal({
+    type: 'warning',
+    title: '确认发布',
+    message: '确定要发布这篇文章吗？发布后所有用户都可见。',
+    showCancel: true,
+    confirmText: '立即发布',
+    action: () => handleSubmit(true)
+  })
+}
+
 const handleSubmit = async (publish = false) => {
   if (!form.value.title || !form.value.content) {
     error.value = '标题和内容不能为空'
@@ -264,7 +323,20 @@ const handleSubmit = async (publish = false) => {
       await api.post('/user/articles', data)
     }
 
-    router.push('/my-articles')
+    // 创建/保存草稿后直接返回列表，发布则显示成功弹窗
+    if (!publish) {
+      router.push('/my-articles')
+    } else {
+      showModal({
+        type: 'success',
+        title: '发布成功',
+        message: '文章已成功发布！',
+        confirmText: '返回文章列表',
+        action: () => {
+          router.push('/my-articles')
+        }
+      })
+    }
   } catch (err) {
     console.error('Failed to save article:', err)
     error.value = err.response?.data?.error || '保存失败，请检查是否已登录'
@@ -284,50 +356,4 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.prose :deep(h2) {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-}
 
-.prose :deep(h3) {
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.prose :deep(p) {
-  margin-bottom: 1rem;
-  line-height: 1.75;
-}
-
-.prose :deep(code) {
-  background-color: #f3f4f6;
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.25rem;
-  color: #dc2626;
-}
-
-.dark .prose :deep(code) {
-  background-color: #374151;
-  color: #fca5a5;
-}
-
-.prose :deep(pre) {
-  background-color: #1f2937;
-  color: #f3f4f6;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin-bottom: 1rem;
-}
-
-.prose :deep(pre code) {
-  background-color: transparent;
-  padding: 0;
-  color: inherit;
-}
-</style>

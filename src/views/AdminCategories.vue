@@ -96,90 +96,17 @@
       <p class="text-gray-600 dark:text-gray-400 text-lg">暂无分类</p>
     </div>
 
-    <!-- 编辑/新建模态框 -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeModal">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 class="text-xl font-bold mb-4 dark:text-white">
-          {{ editingCategory ? '编辑分类' : '新建分类' }}
-        </h2>
-        <form @submit.prevent="saveCategory" class="space-y-4">
-          <div>
-            <label class="block text-sm font-semibold mb-1 dark:text-gray-300">名称 *</label>
-            <input
-              v-model="form.name"
-              type="text"
-              placeholder="分类名称"
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-primary bg-white dark:bg-gray-700 dark:text-white"
-              required
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-semibold mb-1 dark:text-gray-300">Slug</label>
-            <input
-              v-model="form.slug"
-              type="text"
-              placeholder="category-slug"
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-primary bg-white dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-semibold mb-1 dark:text-gray-300">描述</label>
-            <textarea
-              v-model="form.desc"
-              rows="3"
-              placeholder="分类描述"
-              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-primary bg-white dark:bg-gray-700 dark:text-white"
-            ></textarea>
-          </div>
-          <div v-if="error" class="text-red-500 text-sm">{{ error }}</div>
-          <div class="flex gap-3 justify-end">
-            <button
-              type="button"
-              @click="closeModal"
-              class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              :disabled="saving"
-              class="bg-primary hover:bg-green-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold transition"
-            >
-              {{ saving ? '保存中...' : '保存' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- 删除确认模态框 -->
-    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="cancelDelete">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-sm p-6">
-        <div class="text-center">
-          <div class="text-5xl mb-4">⚠️</div>
-          <h3 class="text-lg font-bold mb-2 dark:text-white">确认删除</h3>
-          <p class="text-gray-600 dark:text-gray-400 mb-6">
-            确定要删除分类 <span class="text-primary font-semibold">{{ categoryToDelete?.name }}</span> 吗？<br>
-            <span class="text-sm text-red-500">此操作不可恢复，该分类下的文章将失去分类</span>
-          </p>
-          <div class="flex gap-3 justify-center">
-            <button
-              @click="cancelDelete"
-              class="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-            >
-              取消
-            </button>
-            <button
-              @click="deleteCategory"
-              :disabled="deleting"
-              class="px-6 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-lg font-semibold transition"
-            >
-              {{ deleting ? '删除中...' : '确认删除' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 弹窗 -->
+    <Modal
+      :show="modal.show"
+      :type="modal.type"
+      :title="modal.title"
+      :message="modal.message"
+      :show-cancel="modal.showCancel"
+      :confirm-text="modal.confirmText"
+      @close="modal.show = false"
+      @confirm="handleModalConfirm"
+    />
   </div>
 </template>
 
@@ -188,19 +115,47 @@ import { ref, onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useRouter } from 'vue-router'
 import api from '../api/index'
+import Modal from '../components/Modal.vue'
 
 const router = useRouter()
 const { isAuthenticated, user } = useAuth()
 
 const categories = ref([])
 const loading = ref(false)
-const showModal = ref(false)
+const showEditModal = ref(false)
 const editingCategory = ref(null)
 const saving = ref(false)
 const error = ref('')
-const deleting = ref(null)
-const showDeleteModal = ref(false)
-const categoryToDelete = ref(null)
+
+// 弹窗状态
+const modal = ref({
+  show: false,
+  type: 'info',
+  title: '',
+  message: '',
+  showCancel: false,
+  confirmText: '确定',
+  action: null
+})
+
+const showModal = (options) => {
+  modal.value = {
+    show: true,
+    type: options.type || 'info',
+    title: options.title || '',
+    message: options.message || '',
+    showCancel: options.showCancel || false,
+    confirmText: options.confirmText || '确定',
+    action: options.action || null
+  }
+}
+
+const handleModalConfirm = () => {
+  if (modal.value.action) {
+    modal.value.action()
+  }
+  modal.value.show = false
+}
 
 const form = ref({
   name: '',
@@ -220,7 +175,7 @@ const fetchCategories = async () => {
   }
 }
 
-const openModal = (category = null) => {
+const openEditModal = (category = null) => {
   editingCategory.value = category
   if (category) {
     form.value = {
@@ -232,11 +187,11 @@ const openModal = (category = null) => {
     form.value = { name: '', slug: '', desc: '' }
   }
   error.value = ''
-  showModal.value = true
+  showEditModal.value = true
 }
 
-const closeModal = () => {
-  showModal.value = false
+const closeEditModal = () => {
+  showEditModal.value = false
   editingCategory.value = null
 }
 
@@ -253,8 +208,13 @@ const saveCategory = async () => {
     } else {
       await api.post('/admin/categories', form.value)
     }
-    closeModal()
+    closeEditModal()
     await fetchCategories()
+    showModal({
+      type: 'success',
+      title: '保存成功',
+      message: '分类已成功更新！'
+    })
   } catch (err) {
     error.value = err.response?.data?.error || '保存失败'
   } finally {
@@ -263,28 +223,30 @@ const saveCategory = async () => {
 }
 
 const confirmDelete = (category) => {
-  categoryToDelete.value = category
-  showDeleteModal.value = true
-}
-
-const cancelDelete = () => {
-  showDeleteModal.value = false
-  categoryToDelete.value = null
-}
-
-const deleteCategory = async () => {
-  if (!categoryToDelete.value) return
-  deleting.value = categoryToDelete.value.id
-  try {
-    await api.delete(`/admin/categories/${categoryToDelete.value.id}`)
-    showDeleteModal.value = false
-    categoryToDelete.value = null
-    await fetchCategories()
-  } catch (err) {
-    alert(err.response?.data?.error || '删除失败')
-  } finally {
-    deleting.value = null
-  }
+  showModal({
+    type: 'error',
+    title: '确认删除',
+    message: `确定要删除分类 "${category.name}" 吗？此操作不可恢复，该分类下的文章将失去分类。`,
+    showCancel: true,
+    confirmText: '确认删除',
+    action: async () => {
+      try {
+        await api.delete(`/admin/categories/${category.id}`)
+        await fetchCategories()
+        showModal({
+          type: 'success',
+          title: '删除成功',
+          message: '分类已成功移除。'
+        })
+      } catch (err) {
+        showModal({
+          type: 'error',
+          title: '删除失败',
+          message: err.response?.data?.error || '无法删除该分类。'
+        })
+      }
+    }
+  })
 }
 
 onMounted(async () => {

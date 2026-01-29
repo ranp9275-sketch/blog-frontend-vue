@@ -64,20 +64,41 @@
       </div>
 
       <!-- 筛选 -->
-      <div class="mb-6 flex flex-wrap gap-3">
-        <button
-          v-for="s in statusOptions"
-          :key="s.value"
-          @click="filterStatus = s.value"
-          :class="[
-            'px-4 py-2 rounded-lg font-semibold transition',
-            filterStatus === s.value
-              ? 'bg-primary text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-          ]"
-        >
-          {{ s.label }}
-        </button>
+      <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap gap-3">
+          <button
+            v-for="s in statusOptions"
+            :key="s.value"
+            @click="filterStatus = s.value"
+            :class="[
+              'px-4 py-2 rounded-lg font-semibold transition',
+              filterStatus === s.value
+                ? 'bg-primary text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            ]"
+          >
+            {{ s.label }}
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <input
+            type="file"
+            ref="fileInput"
+            class="hidden"
+            accept=".pdf,.md"
+            @change="handleFileUpload"
+          />
+          <button
+            @click="$refs.fileInput.click()"
+            :disabled="uploading"
+            class="bg-primary hover:bg-green-600 disabled:bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold transition flex items-center gap-2"
+          >
+            <span v-if="uploading" class="animate-spin text-lg">⏳</span>
+            <span v-else>📤</span>
+            {{ uploading ? '上传中...' : '上传文章 (PDF/MD)' }}
+          </button>
+        </div>
       </div>
 
       <!-- 加载状态 -->
@@ -165,6 +186,18 @@
         </button>
       </div>
     </div>
+
+    <!-- 弹窗 -->
+    <Modal
+      :show="modal.show"
+      :type="modal.type"
+      :title="modal.title"
+      :message="modal.message"
+      :show-cancel="modal.showCancel"
+      :confirm-text="modal.confirmText"
+      @close="modal.show = false"
+      @confirm="handleModalConfirm"
+    />
   </div>
 </template>
 
@@ -173,6 +206,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { adminArticleAPI } from '../api/index'
 import dayjs from 'dayjs'
+import Modal from '../components/Modal.vue'
 
 const { isAuthenticated, user } = useAuth()
 
@@ -181,9 +215,41 @@ const activeTab = ref('articles')
 
 const articles = ref([])
 const loading = ref(false)
+const uploading = ref(false)
+const fileInput = ref(null)
 const currentPage = ref(1)
 const totalPages = ref(1)
 const filterStatus = ref('')
+
+// 弹窗状态
+const modal = ref({
+  show: false,
+  type: 'info',
+  title: '',
+  message: '',
+  showCancel: false,
+  confirmText: '确定',
+  action: null
+})
+
+const showModal = (options) => {
+  modal.value = {
+    show: true,
+    type: options.type || 'info',
+    title: options.title || '',
+    message: options.message || '',
+    showCancel: options.showCancel || false,
+    confirmText: options.confirmText || '确定',
+    action: options.action || null
+  }
+}
+
+const handleModalConfirm = () => {
+  if (modal.value.action) {
+    modal.value.action()
+  }
+  modal.value.show = false
+}
 
 const statusOptions = [
   { value: '', label: '全部' },
@@ -238,15 +304,31 @@ const goToPage = (page) => {
 }
 
 const handlePublish = async (id) => {
-  if (!confirm('确定要发布这篇文章吗？')) return
-  
-  try {
-    await adminArticleAPI.publishArticle(id)
-    await fetchArticles()
-  } catch (error) {
-    console.error('Failed to publish article:', error)
-    alert('发布失败')
-  }
+  showModal({
+    type: 'warning',
+    title: '确认发布',
+    message: '确定要发布这篇文章吗？',
+    showCancel: true,
+    confirmText: '立即发布',
+    action: async () => {
+      try {
+        await adminArticleAPI.publishArticle(id)
+        await fetchArticles()
+        showModal({
+          type: 'success',
+          title: '发布成功',
+          message: '文章已成功发布！'
+        })
+      } catch (error) {
+        console.error('Failed to publish article:', error)
+        showModal({
+          type: 'error',
+          title: '发布失败',
+          message: '文章发布过程中出现错误，请稍后重试。'
+        })
+      }
+    }
+  })
 }
 
 const handleReject = async (id) => {
@@ -255,22 +337,78 @@ const handleReject = async (id) => {
   try {
     await adminArticleAPI.rejectArticle(id, reason || '')
     await fetchArticles()
+    showModal({
+      type: 'success',
+      title: '已拒绝',
+      message: '文章已被拒绝。'
+    })
   } catch (error) {
     console.error('Failed to reject article:', error)
-    alert('操作失败')
+    showModal({
+      type: 'error',
+      title: '操作失败',
+      message: '处理过程中出现错误。'
+    })
+  }
+}
+
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  uploading.value = true
+  try {
+    await adminArticleAPI.uploadArticle(formData)
+    await fetchArticles()
+    showModal({
+      type: 'success',
+      title: '上传成功',
+      message: `文章《${file.name}》已成功上传并发布！`
+    })
+  } catch (error) {
+    console.error('Failed to upload article:', error)
+    showModal({
+      type: 'error',
+      title: '上传失败',
+      message: error.response?.data?.error || '文件上传过程中出现错误。'
+    })
+  } finally {
+    uploading.value = false
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
   }
 }
 
 const handleDelete = async (id) => {
-  if (!confirm('确定要删除这篇文章吗？此操作不可恢复！')) return
-  
-  try {
-    await adminArticleAPI.deleteArticle(id)
-    await fetchArticles()
-  } catch (error) {
-    console.error('Failed to delete article:', error)
-    alert('删除失败')
-  }
+  showModal({
+    type: 'error',
+    title: '确认删除',
+    message: '确定要删除这篇文章吗？此操作不可恢复！',
+    showCancel: true,
+    confirmText: '确认删除',
+    action: async () => {
+      try {
+        await adminArticleAPI.deleteArticle(id)
+        await fetchArticles()
+        showModal({
+          type: 'success',
+          title: '删除成功',
+          message: '文章已从系统中移除。'
+        })
+      } catch (error) {
+        console.error('Failed to delete article:', error)
+        showModal({
+          type: 'error',
+          title: '删除失败',
+          message: '无法删除该文章，请检查权限。'
+        })
+      }
+    }
+  })
 }
 
 watch(filterStatus, () => {
