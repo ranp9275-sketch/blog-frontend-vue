@@ -41,7 +41,7 @@
     <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
       <h2 class="text-xl font-bold dark:text-white">分类列表 ({{ categories.length }})</h2>
       <button
-        @click="openModal()"
+        @click="openEditModal()"
         class="bg-primary hover:bg-green-600 text-white px-6 py-2 rounded-lg font-semibold transition"
       >
         + 新建分类
@@ -73,7 +73,7 @@
             <td class="px-6 py-4 text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ category.desc || '-' }}</td>
             <td class="px-6 py-4 text-right">
               <button
-                @click="openModal(category)"
+                @click="openEditModal(category)"
                 class="text-primary hover:text-green-600 px-3 py-1 transition"
               >
                 编辑
@@ -96,7 +96,66 @@
       <p class="text-gray-600 dark:text-gray-400 text-lg">暂无分类</p>
     </div>
 
-    <!-- 弹窗 -->
+    <!-- 编辑分类弹窗 -->
+    <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeEditModal">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-xl font-bold dark:text-white">
+            {{ editingCategory ? '编辑分类' : '新建分类' }}
+          </h3>
+          <button @click="closeEditModal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-2xl">&times;</button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div v-if="error" class="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg">
+            {{ error }}
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">名称 *</label>
+            <input
+              v-model="form.name"
+              type="text"
+              placeholder="分类名称"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Slug</label>
+            <input
+              v-model="form.slug"
+              type="text"
+              placeholder="URL 友好标识"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">描述</label>
+            <textarea
+              v-model="form.desc"
+              rows="3"
+              placeholder="分类描述（可选）"
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+            ></textarea>
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            @click="closeEditModal"
+            class="px-4 py-2 rounded-lg font-semibold transition bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            取消
+          </button>
+          <button
+            @click="saveCategory"
+            :disabled="saving"
+            class="px-4 py-2 rounded-lg font-semibold transition bg-primary hover:bg-green-600 text-white disabled:opacity-50"
+          >
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 确认弹窗 -->
     <Modal
       :show="modal.show"
       :type="modal.type"
@@ -125,6 +184,7 @@ const loading = ref(false)
 const showEditModal = ref(false)
 const editingCategory = ref(null)
 const saving = ref(false)
+const deleting = ref(null)
 const error = ref('')
 
 // 弹窗状态
