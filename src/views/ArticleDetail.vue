@@ -131,6 +131,13 @@ import { useRoute } from 'vue-router'
 import { articleAPI, commentAPI } from '../api/index'
 import { marked } from 'marked'
 import dayjs from 'dayjs'
+
+// 配置 marked：启用 GFM（支持表格、删除线、有序列表等），关闭 pedantic 模式
+marked.setOptions({
+  gfm: true,
+  breaks: false,
+  pedantic: false
+})
 import DonationModal from '../components/DonationModal.vue'
 
 const route = useRoute()
@@ -211,40 +218,113 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ===== 标题 ===== */
+.prose :deep(h1) {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-top: 2.5rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.3;
+  color: inherit;
+}
+
 .prose :deep(h2) {
   font-size: 1.5rem;
-  font-weight: bold;
+  font-weight: 700;
   margin-top: 2rem;
   margin-bottom: 1rem;
+  line-height: 1.4;
+  color: inherit;
 }
 
 .prose :deep(h3) {
   font-size: 1.25rem;
-  font-weight: bold;
+  font-weight: 700;
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
+  line-height: 1.4;
+  color: inherit;
 }
 
+.prose :deep(h4) {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: inherit;
+}
+
+.prose :deep(h5) {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: inherit;
+}
+
+.prose :deep(h6) {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #6b7280;
+}
+
+/* ===== 段落 ===== */
 .prose :deep(p) {
   margin-bottom: 1rem;
   line-height: 1.75;
 }
 
-.prose :deep(ul),
-.prose :deep(ol) {
+/* ===== 列表 ===== */
+.prose :deep(ul) {
+  list-style-type: disc;
   margin-bottom: 1rem;
-  margin-left: 1.5rem;
+  margin-left: 1.75rem;
+  padding-left: 0;
+}
+
+.prose :deep(ol) {
+  list-style-type: decimal;
+  margin-bottom: 1rem;
+  margin-left: 1.75rem;
+  padding-left: 0;
 }
 
 .prose :deep(li) {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.375rem;
+  line-height: 1.7;
+  display: list-item;
 }
 
+.prose :deep(li > ul),
+.prose :deep(li > ol) {
+  margin-top: 0.375rem;
+  margin-bottom: 0.375rem;
+}
+
+/* ===== 行内格式 ===== */
+.prose :deep(em) {
+  font-style: italic;
+}
+
+.prose :deep(strong) {
+  font-weight: 700;
+}
+
+.prose :deep(del) {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+/* ===== 代码 ===== */
 .prose :deep(code) {
   background-color: #f3f4f6;
-  padding: 0.125rem 0.5rem;
+  padding: 0.125rem 0.4rem;
   border-radius: 0.25rem;
+  font-size: 0.875em;
   color: #dc2626;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
 .dark .prose :deep(code) {
@@ -255,40 +335,106 @@ onMounted(() => {
 .prose :deep(pre) {
   background-color: #1f2937;
   color: #f3f4f6;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   border-radius: 0.5rem;
   overflow-x: auto;
   margin-bottom: 1rem;
+  line-height: 1.6;
 }
 
 .prose :deep(pre code) {
   background-color: transparent;
   padding: 0;
   color: inherit;
+  font-size: 0.875rem;
 }
 
+/* ===== 引用 ===== */
 .prose :deep(blockquote) {
   border-left: 4px solid #10b981;
-  padding-left: 1rem;
+  padding: 0.5rem 1rem;
+  margin-left: 0;
+  margin-bottom: 1rem;
   font-style: italic;
   color: #4b5563;
-  margin-bottom: 1rem;
+  background-color: #f9fafb;
+  border-radius: 0 0.25rem 0.25rem 0;
 }
 
 .dark .prose :deep(blockquote) {
   color: #9ca3af;
+  background-color: #1f2937;
 }
 
+/* ===== 链接 ===== */
 .prose :deep(a) {
   color: #10b981;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.2s;
 }
 
 .prose :deep(a:hover) {
-  text-decoration: underline;
+  text-decoration-color: #10b981;
 }
 
+/* ===== 图片 ===== */
 .prose :deep(img) {
   border-radius: 0.5rem;
   margin-bottom: 1rem;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ===== 分割线 ===== */
+.prose :deep(hr) {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 2rem 0;
+}
+
+.dark .prose :deep(hr) {
+  border-top-color: #374151;
+}
+
+/* ===== 表格 ===== */
+.prose :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  overflow-x: auto;
+  display: block;
+}
+
+.prose :deep(th) {
+  background-color: #f3f4f6;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #d1d5db;
+}
+
+.dark .prose :deep(th) {
+  background-color: #374151;
+  border-color: #4b5563;
+}
+
+.prose :deep(td) {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #d1d5db;
+  vertical-align: top;
+}
+
+.dark .prose :deep(td) {
+  border-color: #4b5563;
+}
+
+.prose :deep(tr:nth-child(even) td) {
+  background-color: #f9fafb;
+}
+
+.dark .prose :deep(tr:nth-child(even) td) {
+  background-color: #1f2937;
 }
 </style>

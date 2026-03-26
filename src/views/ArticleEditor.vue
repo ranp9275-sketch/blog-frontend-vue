@@ -5,6 +5,17 @@
     </h1>
 
     <form @submit.prevent="handleSubmit(false)" class="space-y-6">
+      <!-- 操作提示 / 外部导入 -->
+      <div class="flex justify-end mb-4">
+        <button
+          type="button"
+          @click="showFetchModal = true"
+          class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 shadow-sm"
+        >
+          <span>🔗</span> 一键克隆外部文章
+        </button>
+      </div>
+
       <!-- 标题 -->
       <div>
         <label class="block text-sm font-semibold mb-2 dark:text-gray-300">标题 *</label>
@@ -152,6 +163,45 @@
       @close="modal.show = false"
       @confirm="handleModalConfirm"
     />
+
+    <!-- 抓取文章弹窗 (自定义) -->
+    <div v-if="showFetchModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-xl font-bold mb-4 dark:text-white">从链接克隆文章</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">粘贴其他博客的文章链接，我们将尝试自动提取标题和正文并转换为 Markdown。</p>
+        
+        <input
+          v-model="fetchUrl"
+          type="url"
+          placeholder="https://example.com/article/1"
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 dark:text-white mb-4"
+          @keyup.enter="handleFetchArticle"
+        />
+
+        <div v-if="fetchError" class="text-red-500 text-sm mb-4 bg-red-50 dark:bg-red-900/30 p-2 rounded">
+          {{ fetchError }}
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button
+            type="button"
+            @click="closeFetchModal"
+            class="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-white font-medium"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            @click="handleFetchArticle"
+            :disabled="fetching || !fetchUrl"
+            class="bg-primary hover:bg-green-600 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-semibold transition flex items-center gap-2"
+          >
+            <span v-if="fetching" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+            {{ fetching ? '抓取中...' : '开始提取' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -159,9 +209,17 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
-import { categoryAPI, tagAPI } from '../api/index'
+import { categoryAPI, tagAPI, userArticleAPI } from '../api/index'
 import api from '../api/index'
 import { marked } from 'marked'
+
+// 配置 marked：启用 GFM（支持表格、删除线、有序列表等），关闭 pedantic 模式
+marked.setOptions({
+  gfm: true,
+  breaks: false,
+  pedantic: false
+})
+
 import Modal from '../components/Modal.vue'
 import MarkdownEditor from '../components/MarkdownEditor.vue'
 
@@ -186,6 +244,12 @@ const tags = ref([])
 const selectedTags = ref([])
 const loading = ref(false)
 const error = ref('')
+
+// URL抓取状态
+const showFetchModal = ref(false)
+const fetchUrl = ref('')
+const fetching = ref(false)
+const fetchError = ref('')
 
 // 弹窗状态
 const modal = ref({
@@ -226,6 +290,56 @@ const availableTags = computed(() => {
 const renderedContent = computed(() => {
   return marked(form.value.content || '')
 })
+
+// URL抓取逻辑
+const closeFetchModal = () => {
+  showFetchModal.value = false
+  fetchUrl.value = ''
+  fetchError.value = ''
+}
+
+const handleFetchArticle = async () => {
+  if (!fetchUrl.value) return
+  
+  // 简单校验 URL 格式
+  try {
+    new URL(fetchUrl.value)
+  } catch {
+    fetchError.value = '请输入有效的网址 (需包含 http:// 或 https://)'
+    return
+  }
+
+  fetching.value = true
+  fetchError.value = ''
+
+  try {
+    const response = await userArticleAPI.fetchArticleFromUrl(fetchUrl.value)
+    
+    // 如果原表单有内容，提示是否覆盖
+    if (form.value.title || form.value.content) {
+      if (!confirm('当前编辑器中已有内容。导入外部文章将覆盖现有标题和内容，是否继续？')) {
+        fetching.value = false
+        return
+      }
+    }
+
+    form.value.title = response.data.title || '提取的外部文章'
+    form.value.content = response.data.content || ''
+    if (response.data.cover_image) {
+      form.value.cover_image = response.data.cover_image
+    }
+    if (response.data.category_id) {
+      form.value.category_id = response.data.category_id
+    }
+    
+    closeFetchModal()
+  } catch (err) {
+    console.error('Fetch article failed:', err)
+    fetchError.value = err.response?.data?.error || '抓取失败，请检查链接是否可以公开访问。'
+  } finally {
+    fetching.value = false
+  }
+}
 
 const fetchCategories = async () => {
   try {

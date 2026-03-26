@@ -75,7 +75,11 @@ export const userArticleAPI = {
 
   // 删除文章
   deleteArticle: (id) =>
-    api.delete(`/user/articles/${id}`)
+    api.delete(`/user/articles/${id}`),
+
+  // 从 URL 提取文章并转为 Markdown
+  fetchArticleFromUrl: (url) =>
+    api.post('/user/articles/fetch', { url }, { timeout: 20000 })
 }
 
 // 管理员文章管理 API
